@@ -97,7 +97,43 @@
       state: restarted
     listen: "restart apache"
 
-  - name: restart apache step 2
+#  - name: restart apache step 2
+#    debug:
+#      msg: "Please access the new web server @ https://{{domain_host_name}}"
+#    listen: "restart apache"
+
+# 5, Set up DNS record in godaddy.com
+- name: Update DNS record for this EC2 instance
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Show current host name
     debug:
-      msg: "Please access the new web server @ https://{{domain_host_name}}"
-    listen: "restart apache"
+      var: inventory_hostname
+
+  - name: run curl command to update DNS record
+    shell: |
+      echo "IP is: {{inventory_hostname}}"
+      curl -X PATCH https://api.godaddy.com/v1/domains/{{domain_host_name}}/records -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json' --data '[{"type": "A","name": "@","data": "{{inventory_hostname}}","ttl": 3600}]'
+    args:
+      executable: /bin/bash
+
+  - name: run curl command to read DNS record data back
+    shell: |
+      curl -X GET https://api.godaddy.com/v1/domains/{{domain_host_name}}/records/A/@ -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json'
+    args:
+      executable: /bin/bash
+    register: out
+
+  - name: Show command output
+    debug: var=out.stdout
+
+  - name: Show command output
+    debug:
+      msg: "Successfully updated the DNS record"
+    when:
+      out.stdout is search(inventory_hostname)
+  - name: Show failure message
+    fail:
+      msg: "The DNS record is NOT updated!!!"
+    when: inventory_hostname not in out.stdout
