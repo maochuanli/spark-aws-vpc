@@ -64,9 +64,9 @@ fi
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 if [ "$createVPC" = "true" ]; then
-    ansible-playbook -e @$SCRIPTPATH/default.vars.yml -e aws_access_key=$AWS_ACCESS_KEY -e aws_secret_key=$AWS_SECRET_KEY $SCRIPTPATH/CreateVPC.yml $@
+    ansible-playbook -i "local, " -e @$SCRIPTPATH/default.vars.yml -e aws_access_key=$AWS_ACCESS_KEY -e aws_secret_key=$AWS_SECRET_KEY $SCRIPTPATH/CreateVPC.yml $@
 elif [ "$destroyVPC" = "true" ]; then
-    ansible-playbook -e @$SCRIPTPATH/default.vars.yml -e aws_access_key=$AWS_ACCESS_KEY -e aws_secret_key=$AWS_SECRET_KEY $SCRIPTPATH/DestroyVPC.yml $@
+    ansible-playbook -i "local, " -e @$SCRIPTPATH/default.vars.yml -e aws_access_key=$AWS_ACCESS_KEY -e aws_secret_key=$AWS_SECRET_KEY $SCRIPTPATH/DestroyVPC.yml $@
 elif [ "$setupVPC" = "true" ]; then
     ansible-playbook -i $SCRIPTPATH/ec2_instance_inventory.txt -e @$SCRIPTPATH/default.vars.yml -e ansible_user=ubuntu -e ansible_ssh_private_key_file=$SCRIPTPATH/maoli_key_pair.pem SetupWeb.yml $@
 fi

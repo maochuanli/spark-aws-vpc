@@ -15,7 +15,45 @@
   - name: Install Python
     raw: sudo apt-get install -y python
 
-# 2, Change the host name
+# 2, Set up DNS record in godaddy.com
+- name: Update DNS record for this EC2 instance
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Show current host name
+    debug:
+      var: inventory_hostname
+
+  - name: run curl command to update DNS record
+    shell: |
+      echo "IP is: {{inventory_hostname}}"
+      curl -X PUT https://api.godaddy.com/v1/domains/{{domain_host_name}}/records/A/@ -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json' --data '[{"type": "A","name": "@","data": "{{inventory_hostname}}","ttl": 3600}]'
+    args:
+      executable: /bin/bash
+
+  - name: run curl command to read DNS record data back
+    shell: |
+      curl -X GET https://api.godaddy.com/v1/domains/{{domain_host_name}}/records/A/@ -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json'
+    args:
+      executable: /bin/bash
+    register: out
+    command_warnings: False
+
+  - name: Show command output
+    debug: var=out.stdout
+
+  - name: Show command output
+    debug:
+      msg: "Successfully updated the DNS record"
+    when:
+      out.stdout is search(inventory_hostname)
+  - name: Show failure message
+    fail:
+      msg: "The DNS record is NOT updated!!!"
+    when: inventory_hostname not in out.stdout
+
+
+# 3, Change the host name
 - name: Change Hostname with the given Domain Name
   hosts: all
   gather_facts: false
@@ -43,7 +81,7 @@
       delay: 20
       timeout: 300
 
-# 3, Install required system packages
+# 4, Install required system packages
 - name: Install System packages
   hosts: all
   gather_facts: false
@@ -52,13 +90,16 @@
   - name: Install Apache and relevant packages
     shell: |
       apt-get update
-      apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert libapache2-mod-wsgi python-pip
-      pip install Django
-      a2enmod wsgi ssl
+      apt-get install software-properties-common
+      add-apt-repository ppa:certbot/certbot -y
+      apt-get update
+      apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert libapache2-mod-wsgi python-pip python-certbot-apache
+      pip install Django boto3
+      a2enmod wsgi ssl rewrite
     args:
       executable: /bin/bash
 
-# 4, Configure Apache and Upload Webapp
+# 5, Configure Apache and Upload Webapp
 - name: Configure Apache with WSGi configuration
   hosts: all
   gather_facts: false
@@ -71,9 +112,8 @@
       owner: www-data
       group: www-data
       mode: 0644
-    notify: restart apache
 
-  - name: Change host name of the EC2 instance
+  - name: Enable the wsgi configuration for apache
     shell: |
       a2enconf wsgi
     args:
@@ -90,50 +130,33 @@
       - python
       - html
 
-  handlers:
-  - name: restart apache step 1
-    systemd:
-      name: apache2
-      state: restarted
-    listen: "restart apache"
 
-#  - name: restart apache step 2
-#    debug:
-#      msg: "Please access the new web server @ https://{{domain_host_name}}"
-#    listen: "restart apache"
-
-# 5, Set up DNS record in godaddy.com
-- name: Update DNS record for this EC2 instance
+# 6, Set up certbot service to support HTTPS protocal
+- name: Obtain a temporary certificate and install it into apache configuration
   hosts: all
   gather_facts: false
+  become: yes
   tasks:
-  - name: Show current host name
-    debug:
-      var: inventory_hostname
-
-  - name: run curl command to update DNS record
+  - name: run system command to add certbot repository and install it
     shell: |
-      echo "IP is: {{inventory_hostname}}"
-      curl -X PATCH https://api.godaddy.com/v1/domains/{{domain_host_name}}/records -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json' --data '[{"type": "A","name": "@","data": "{{inventory_hostname}}","ttl": 3600}]'
-    args:
-      executable: /bin/bash
-
-  - name: run curl command to read DNS record data back
-    shell: |
-      curl -X GET https://api.godaddy.com/v1/domains/{{domain_host_name}}/records/A/@ -H 'Authorization: sso-key {{go_daddy_key}}:{{go_daddy_secret}}' -H 'Content-Type: application/json'
+      certbot --apache run -d {{domain_host_name}} -m mao.chuan.li@gmail.com --agree-tos -n --staging
     args:
       executable: /bin/bash
     register: out
 
-  - name: Show command output
+  - name: Show certbot --apache run .... command output
     debug: var=out.stdout
 
-  - name: Show command output
-    debug:
-      msg: "Successfully updated the DNS record"
-    when:
-      out.stdout is search(inventory_hostname)
-  - name: Show failure message
-    fail:
-      msg: "The DNS record is NOT updated!!!"
-    when: inventory_hostname not in out.stdout
+  - name: insert rewrite http to https configuration
+    blockinfile:
+      path: /etc/apache2/sites-available/000-default.conf
+      insertbefore: "</VirtualHost>"
+      content: |
+        RewriteEngine on
+        RewriteCond %{SERVER_NAME} ={{domain_host_name}}
+        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+
+  - name: restart apache to reflect the new certificate change
+    systemd:
+      name: apache2
+      state: restarted
