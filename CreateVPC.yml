@@ -104,7 +104,7 @@
 
   - name: Copy EC2 Private Key locally so it can be later on used to SSH into the instance
     copy: content="{{ keypair.key.private_key }}" dest="{{ playbook_dir }}/{{keypair_name}}.pem"
-    mode: 0400
+      mode: 0400
     when: keypair.changed == true
 
   - name: Create EC2 instance

@@ -1,10 +1,97 @@
 ---
 
 # playbook to set up the apache EC2 instance
-- name: Create VPC Infrastructure
-  hosts: localhost
+- name: Make sure Python is installed on target machine
+  hosts: all
   gather_facts: false
+  become: yes
   tasks:
-  - name: Show current AWS Credential Key
+  - name: Show current Domain Name given
     debug:
-      var: aws_access_key
+      var: domain_host_name
+
+  - name: Install Python
+    raw: sudo apt-get install -y python
+
+- name: Change Hostname with the given Domain Name
+  hosts: all
+  gather_facts: false
+  become: yes
+  tasks:
+  - name: Change host name of the EC2 instance
+    shell: |
+      echo "{{ domain_host_name }}" > /etc/hostname
+    args:
+      executable: /bin/bash
+
+  - name: Change host name in /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      line: '127.0.0.1 {{ domain_host_name }}'
+
+  - name: Rebooting ...
+    shell: sleep 3 && shutdown -r now
+    async: 1
+    poll: 0
+    ignore_errors: true
+
+  - name: Wait for system to become reachable again
+    wait_for_connection:
+      delay: 20
+      timeout: 300
+
+- name: Change Hostname with the given Domain Name
+  hosts: all
+  gather_facts: false
+  become: yes
+  tasks:
+  - name: Change host name of the EC2 instance
+    shell: |
+      apt-get update
+      apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert libapache2-mod-wsgi python-pip
+      pip install Django
+      a2enmod wsgi ssl
+    args:
+      executable: /bin/bash
+
+# Configure Apache and Upload Webapp
+- name: Configure Apache with WSGi configuration
+  hosts: all
+  gather_facts: false
+  become: yes
+  tasks:
+  - name: for wsgi.conf
+    copy:
+      src: "{{ playbook_dir }}/webapp/wsgi.conf"
+      dest: /etc/apache2/conf-available/wsgi.conf
+      owner: www-data
+      group: www-data
+      mode: 0644
+    notify: restart apache
+
+  - name: Change host name of the EC2 instance
+    shell: |
+      a2enconf wsgi
+    args:
+      executable: /bin/bash
+
+  - name: copying python code and the html file
+    copy:
+      src: "{{ playbook_dir }}/webapp/{{item}}"
+      dest: "/var/www/"
+      owner: www-data
+      group: www-data
+      mode: 0644
+    loop:
+      - python
+      - html
+
+  handlers:
+  - name: restart apache step 1
+    systemd:
+      name: apache2
+      state: restarted
+
+  - name: restart apache step 2
+    debug:
+      msg: "Please access the new web server @ https://{{domain_host_name}}"

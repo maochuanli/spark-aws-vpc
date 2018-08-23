@@ -31,3 +31,6 @@ ami_image_id: "ami-5e8bb23b"
 vpc_id_file_name: vpc_id.txt
 ec2_instance_ids_file_name: vpc_instance_ids.txt
 ec2_instance_inventory_file_name: ec2_instance_inventory.txt
+
+
+domain_host_name: spark.guo.place
