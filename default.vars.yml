@@ -1,0 +1,33 @@
+---
+# vars file for spark-aws-vpc
+#vars/main.yml
+ 
+aws_access_key: "dummyKey"
+aws_secret_key: "dummySecret"
+region: "us-east-2"
+ 
+# VPC
+vpc_cidr: 10.240.0.0/16
+vpc_name: "Spark AWS VPC"
+ 
+# Subnet
+subnet_name: "Web Public Subnet"
+subnet_cidr: 10.240.0.0/24
+ 
+# Internet Gateway Name
+igw_name: "InternetGW"
+route_name: "router1"
+ 
+securitygroup_name: "EC2 WebServer Security Group"
+ 
+ec2_tag: "WebServer"
+ 
+#The local path to which we would save our EC2 Private Key
+keypair_name: "maoli_key_pair"
+
+#EC2 image Ubuntu Server 16.04 LTS (HVM), SSD Volume Type - ami-5e8bb23b
+ami_image_id: "ami-5e8bb23b"
+
+vpc_id_file_name: vpc_id.txt
+ec2_instance_ids_file_name: vpc_instance_ids.txt
+ec2_instance_inventory_file_name: ec2_instance_inventory.txt

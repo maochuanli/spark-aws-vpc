@@ -1,0 +1,10 @@
+---
+
+# playbook to set up the apache EC2 instance
+- name: Create VPC Infrastructure
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Show current AWS Credential Key
+    debug:
+      var: aws_access_key

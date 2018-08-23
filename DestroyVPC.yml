@@ -1,0 +1,95 @@
+---
+
+- name: Destroy EC2 instance
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ec2_instance_ids: "{{ lookup('file', '{{ playbook_dir }}/{{ ec2_instance_ids_file_name }}') }}"
+    vpc_id: "{{ lookup('file', '{{ playbook_dir }}/{{ vpc_id_file_name }}') }}"
+  tasks:
+  - debug: var=ec2_instance_ids
+
+  - name: terminate the EC2 instance previously launched
+    ec2:
+      wait: yes
+      state: 'absent'
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      instance_ids: '{{ ec2_instance_ids }}'
+
+  - name: Remove the ec2 key pair
+    ec2_key:
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      name: "{{ keypair_name }}"
+      region: "{{ region }}"
+      state: 'absent'
+
+- name: Destroy VPC Infrastructure
+  hosts: localhost
+  gather_facts: false
+  vars:
+    ec2_instance_ids: "{{ lookup('file', '{{ playbook_dir }}/{{ ec2_instance_ids_file_name }}') }}"
+    vpc_id: "{{ lookup('file', '{{ playbook_dir }}/{{ vpc_id_file_name }}') }}"
+  tasks:
+  - name: Remove subnet for EC2 instance
+    ec2_vpc_subnet:
+      state: absent
+      vpc_id: "{{ vpc_id }}"
+      cidr: "{{ subnet_cidr }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      region: "{{ region }}"
+
+  - name: Remove Internet GW
+    ec2_vpc_igw:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      state: "absent"
+
+  - name: Remove Route table
+    ec2_vpc_route_table:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      state: "absent"
+      tags:
+        Name: "{{ route_name }}"
+
+  - name: Remove Security Group
+    ec2_group:
+      name: Web DMZ
+      description: DMZ Security Group
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      state: "absent"
+
+  - name: Destroy VPC network
+    ec2_vpc_net:
+      name: "{{ vpc_name }}"
+      cidr_block: "{{ vpc_cidr }}"
+      region: "{{ region }}"
+      state: absent
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+
+- name: Destroy Temp Files
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Remove all temp files for previous VPC
+    file:
+      state: absent
+      path: "{{ item }}"
+    loop:
+      - "{{ playbook_dir }}/{{ vpc_id_file_name }}"
+      - "{{ playbook_dir }}/{{ ec2_instance_ids_file_name }}"
+      - "{{ playbook_dir }}/{{ ec2_instance_inventory_file_name }}"
+      - "{{ playbook_dir }}/{{ keypair_name }}.pem"
+

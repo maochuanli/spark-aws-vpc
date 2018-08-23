@@ -1,0 +1,132 @@
+---
+
+# tasks file for spark-aws-vpc
+- name: Create VPC Infrastructure
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Show current AWS Credential Key
+    debug:
+      var: aws_access_key
+
+  - name: create VPC network
+    ec2_vpc_net:
+      name: "{{ vpc_name }}"
+      cidr_block: "{{ vpc_cidr }}"
+      region: "{{ region }}"
+      state: present
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    register: vpc
+
+  - name: Set fact vpc_id
+    set_fact:
+      vpc_id: "{{ vpc.vpc.id }}"
+
+  - name: Copy VPC ID to a local file
+    copy: content="{{ vpc_id }}" dest="{{ playbook_dir }}/{{ vpc_id_file_name }}"
+    mode: 0400
+
+  - name: associate subnet to the VPC
+    ec2_vpc_subnet:
+      state: present
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      cidr: "{{ subnet_cidr }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      map_public: yes
+      resource_tags:
+        Name: "{{ subnet_name }}"
+    register: subnet
+
+  - name: create Internet GW
+    ec2_vpc_igw:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      state: "present"
+      tags:
+        Name: "{{ igw_name }}"
+    register: igw
+
+  - name: Create Route for IGW
+    ec2_vpc_route_table:
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      subnets:
+        - "{{ subnet.subnet.id }}"
+      routes:
+        - dest: 0.0.0.0/0
+          gateway_id: "{{ igw.gateway_id  }}"
+      tags:
+        Name: "{{ route_name }}"
+
+  # update the CIDR address in the SSH port section.
+
+  - name: Create Security Group
+    ec2_group:
+      name: Web DMZ
+      description: DMZ Security Group
+      vpc_id: "{{ vpc_id }}"
+      region: "{{ region }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      rules:
+        - proto: tcp
+          ports:
+          - 80
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          ports:
+          - 443
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          ports:
+          - 22
+          cidr_ip: 0.0.0.0/0
+    register: security_group
+
+- name: Create Keypair and EC2 instance
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: create a new ec2 key pair
+    ec2_key:
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      name: "{{ keypair_name }}"
+      region: "{{ region }}"
+    register: keypair
+
+  - name: Copy EC2 Private Key locally so it can be later on used to SSH into the instance
+    copy: content="{{ keypair.key.private_key }}" dest="{{ playbook_dir }}/{{keypair_name}}.pem"
+    mode: 0400
+    when: keypair.changed == true
+
+  - name: Create EC2 instance
+    ec2:
+      image: "{{ami_image_id}}"
+      wait: yes
+      instance_type: t2.micro
+      region: "{{ region }}"
+      group_id: "{{ security_group.group_id }}"
+      vpc_subnet_id: "{{ subnet.subnet.id }}"
+      key_name: "{{ keypair.key.name  }}"
+      count_tag:
+        Name: apacheserver
+      exact_count: 1
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    register: ec2
+
+  - name: Save EC2 instance id for later termination
+    copy: content="{{ ec2.instance_ids }}" dest="{{ playbook_dir }}/{{ ec2_instance_ids_file_name }}"
+
+  - name: Save EC2 instance public IP address
+    copy: content="{{ ec2.instances[0].public_ip }}" dest="{{ playbook_dir }}/{{ ec2_instance_inventory_file_name }}"
+
+
