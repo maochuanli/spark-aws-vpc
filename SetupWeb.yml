@@ -1,6 +1,8 @@
 ---
 
 # playbook to set up the apache EC2 instance
+
+# 1, Install Python
 - name: Make sure Python is installed on target machine
   hosts: all
   gather_facts: false
@@ -13,6 +15,7 @@
   - name: Install Python
     raw: sudo apt-get install -y python
 
+# 2, Change the host name
 - name: Change Hostname with the given Domain Name
   hosts: all
   gather_facts: false
@@ -40,12 +43,13 @@
       delay: 20
       timeout: 300
 
-- name: Change Hostname with the given Domain Name
+# 3, Install required system packages
+- name: Install System packages
   hosts: all
   gather_facts: false
   become: yes
   tasks:
-  - name: Change host name of the EC2 instance
+  - name: Install Apache and relevant packages
     shell: |
       apt-get update
       apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert libapache2-mod-wsgi python-pip
@@ -54,7 +58,7 @@
     args:
       executable: /bin/bash
 
-# Configure Apache and Upload Webapp
+# 4, Configure Apache and Upload Webapp
 - name: Configure Apache with WSGi configuration
   hosts: all
   gather_facts: false
@@ -91,7 +95,9 @@
     systemd:
       name: apache2
       state: restarted
+    listen: "restart apache"
 
   - name: restart apache step 2
     debug:
       msg: "Please access the new web server @ https://{{domain_host_name}}"
+    listen: "restart apache"
