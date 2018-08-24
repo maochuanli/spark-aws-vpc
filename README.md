@@ -28,6 +28,7 @@
    * `$> ~/spark-aws-vpc/run.sh destroy`
 # What I have done
 1. Create an Ansible project to manage the AWS VPC resources which contains the following artefacts:
+   * ![VPC Architecture](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/images/Case1_Diagram.png)
    * **CreateVPC.yml** - the main playbook to create VPC infrastructure and EC2 instance for the VPC network. With successful creation, all VPC network id, EC2 instance id and temporary key file for accessing the EC2 instance will be generated under the working directory.
       * Create a VPC network with given network CIDR
       * Create a public subnet under the VPC
