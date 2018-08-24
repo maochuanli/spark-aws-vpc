@@ -36,5 +36,8 @@ ec2_instance_inventory_file_name: ec2_instance_inventory.txt
 domain_host_name: guo.place
 
 #godaddy secret
-go_daddy_key: dummyKey
-go_daddy_secret: dummyValue
+go_daddy_key:  dummyKey
+go_daddy_secret: dummySecret
+
+webapp_download_url: https://codeload.github.com/maochuanli/spark-aws-webapp/zip/master
+

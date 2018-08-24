@@ -89,12 +89,13 @@
   tasks:
   - name: Install Apache and relevant packages
     shell: |
+      export LC_ALL=C
       apt-get update
       apt-get install software-properties-common
       add-apt-repository ppa:certbot/certbot -y
       apt-get update
-      apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert libapache2-mod-wsgi python-pip python-certbot-apache
-      pip install Django boto3
+      apt-get install -y apache2 apache2-bin apache2-data apache2-utils ssl-cert python3-pip python-certbot-apache libapache2-mod-wsgi-py3 unzip
+      pip3 install django boto3
       a2enmod wsgi ssl rewrite
     args:
       executable: /bin/bash
@@ -107,7 +108,15 @@
   tasks:
   - name: for wsgi.conf
     copy:
-      src: "{{ playbook_dir }}/webapp/wsgi.conf"
+      content: |
+        WSGIScriptAlias / /home/ubuntu/spark-web/spark/wsgi.py
+        WSGIPythonPath /home/ubuntu/spark-web
+
+        <Directory /home/ubuntu/spark-web/spark>
+        <Files wsgi.py>
+        Require all granted
+        </Files>
+        </Directory>
       dest: /etc/apache2/conf-available/wsgi.conf
       owner: www-data
       group: www-data
@@ -119,17 +128,26 @@
     args:
       executable: /bin/bash
 
-  - name: copying python code and the html file
-    copy:
-      src: "{{ playbook_dir }}/webapp/{{item}}"
-      dest: "/var/www/"
-      owner: www-data
-      group: www-data
-      mode: 0644
-    loop:
-      - python
-      - html
+  - name: Extract the webapp zip file into /home/ubuntu/spark-web
+    unarchive:
+      src: "{{ webapp_download_url }}"
+      remote_src: yes
+      dest: /home/ubuntu
 
+  - name: Move spark-aws-webapp-master directory to spark-web
+    shell: |
+      rm -rf /home/ubuntu/spark-web*
+      mv /home/ubuntu/spark-aws-webapp* /home/ubuntu/spark-web
+      chown -R www-data:www-data /home/ubuntu/spark-web
+
+  - name: Override the aws.ini file with correct credentials
+    blockinfile:
+      path: /home/ubuntu/spark-web/aws.ini
+      content: |
+        [DEFAULT]
+        aws_access_key={{aws_access_key}}
+        aws_secret_key={{aws_secret_key}}
+        bucket_name=spark-bucket-2018-maochuanli
 
 # 6, Set up certbot service to support HTTPS protocal
 - name: Obtain a temporary certificate and install it into apache configuration
