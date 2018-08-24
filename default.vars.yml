@@ -39,5 +39,6 @@ domain_host_name: guo.place
 go_daddy_key:  dummyKey
 go_daddy_secret: dummySecret
 
+#Django Webapp Download URL
 webapp_download_url: https://codeload.github.com/maochuanli/spark-aws-webapp/zip/master
 

@@ -25,7 +25,6 @@
 
   - name: Copy VPC ID to a local file
     copy: content="{{ vpc_id }}" dest="{{ playbook_dir }}/{{ vpc_id_file_name }}"
-    mode: 0400
 
   - name: associate subnet to the VPC
     ec2_vpc_subnet:

@@ -37,7 +37,6 @@
     args:
       executable: /bin/bash
     register: out
-    command_warnings: False
 
   - name: Show command output
     debug: var=out.stdout
@@ -157,7 +156,7 @@
   tasks:
   - name: run system command to add certbot repository and install it
     shell: |
-      certbot --apache run -d {{domain_host_name}} -m mao.chuan.li@gmail.com --agree-tos -n --staging
+      certbot --apache run -d {{domain_host_name}} -m mao.chuan.li@gmail.com --agree-tos -n
     args:
       executable: /bin/bash
     register: out
