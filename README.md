@@ -73,4 +73,4 @@
 	       * A cron job can be easily set up to run the above command at a specified interval
          * Or we can rely on the versioning of S3 bucket to keep every change if the bucket size is not huge
       * The automation control code (in my case) is saved in a public git repository github, which has it's own DR solution that can help prevent data loss. So for this data, I don't think we need backup. Refer to [github security](https://help.github.com/articles/github-security/)
-      * The EC2 instances all all dynamically generated from template, nothing need be backed up 
+      * The EC2 instances are all dynamically generated from template, nothing need be backed up 
