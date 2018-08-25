@@ -15,7 +15,7 @@
     export GODADDY_SECRET_KEY=your_godaddy_secret
       ```
 4. Execute the Ansible task for creating the VPC infrastructure and EC2 instance
-   * **Notice** - the Ansible script assumes the AMI image is Debian based distruction, if you want to change the {{ ami_image_id }} variable, please make sure it is Debian based.
+   * **Notice** - the Ansible script assumes the AMI image is a Debian-based distribution, if you want to change the {{ ami_image_id }} variable, please make sure it is Debian based.
    * `$> ~/spark-aws-vpc/run.sh create`
    * **Notice:** besides the above 4 variables, all other variables defined in the default.vars.yml file could be customized on the command such as:
    * `$> ~/spark-aws-vpc/run.sh create -vvvv -e region=us-east-2 -e vpc_cidr=10.240.0.0/20 -e domain_host_name=guo.place`
