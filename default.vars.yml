@@ -9,7 +9,7 @@ region: "us-east-2"
 # VPC
 vpc_cidr: 10.240.0.0/16
 vpc_name: "Spark AWS VPC"
- 
+vpc_bucket_name: "christian-spark-2018-bucket"
 # Subnet
 subnet_name: "Web Public Subnet"
 subnet_cidr: 10.240.0.0/24

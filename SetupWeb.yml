@@ -146,7 +146,7 @@
         [DEFAULT]
         aws_access_key={{aws_access_key}}
         aws_secret_key={{aws_secret_key}}
-        bucket_name=spark-bucket-2018-maochuanli
+        bucket_name={{vpc_bucket_name}}
 
 # 6, Set up certbot service to support HTTPS protocal
 - name: Obtain a temporary certificate and install it into apache configuration
