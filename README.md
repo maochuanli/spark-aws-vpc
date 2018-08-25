@@ -1,5 +1,6 @@
 # How to run the tasks
 0. Buy a domain name from [godaddy.com](godaddy.com) and acquire a pair of API key and secret key from the [website](https://developer.godaddy.com/)
+      * **Notice** - the Ansible script assumes the AMI image is Debian based distruction, if you want to change the {{ ami_image_id }} variable, please make sure it is Debian based.
 
 1. Download the project to local system with
       * `git clone git@github.com:maochuanli/spark-aws-vpc.git` OR
