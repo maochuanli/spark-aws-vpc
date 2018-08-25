@@ -64,12 +64,12 @@
 
 # Questions and Answers
 1. - Can you make the deployment tolerant to failures? Eg: EC2 instance gets terminated by accident and recovers automatically.
-   * **Answer:** Create a launch configuration as what I have done above and create an Auto Scaling group that connects to the VPC network. Set the group size to 1(default). with this setting, any failure of EC2 instance will be recovered/replaced with and healthy instance within 5 minutes. Refer to [EC2 Auto Scaling](https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html)
+   * **Answer:** Create a launch configuration as what I have done above and create an Auto Scaling group that connects to the VPC network. Set the group size to 1(default). with this setting, any failure of EC2 instance will be recovered/replaced with a healthy instance within 5 minutes. Refer to [EC2 Auto Scaling](https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html). 
 
 2. - Can you come up with a DR strategy? Eg: Backups.
    * **Answer:** For this simple web application, the most important data is:
       * The user data - all the files user has uploaded to AWS bucket. 
          * If local storage capacity is big enough, it's easy to periodically download the latest S3 bucket data with the AWS command line tool.  `/usr/bin/aws s3 sync s3://{BUCKET_NAME} /home/ubuntu/s3/{BUCKET_NAME}/`
          * Or we can rely on the versioning of S3 bucket to keep every change if the bucket size is not huge
-      * The automation control code (in my case) is saved in a public git repository github, which has it's own DR solution that can help prevent data loss. So for this data, I don't think we need backup
+      * The automation control code (in my case) is saved in a public git repository github, which has it's own DR solution that can help prevent data loss. So for this data, I don't think we need backup. Refer to [github security](https://help.github.com/articles/github-security/)
       * The EC2 instances all all dynamically generated from template, nothing need be backed up 
